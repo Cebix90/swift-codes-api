@@ -14,4 +14,6 @@ public interface SwiftCodeRepository extends JpaRepository<SwiftCode, Long> {
     List<SwiftCode> findAllByCountry_Id(Long countryId);
 
     boolean existsBySwiftCode(String swiftCode);
+
+    List<SwiftCode> findAllByHeadquarterEntity(SwiftCode headquarter);
 }

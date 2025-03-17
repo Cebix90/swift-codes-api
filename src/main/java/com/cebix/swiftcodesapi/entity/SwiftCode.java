@@ -31,7 +31,19 @@ public class SwiftCode {
     @Column(name = "branch_name", length = 150)
     private String branchName;
 
+    @NotBlank(message = "Address cannot be blank")
+    @Size(max = 255, message = "Address can't be longer than 255 characters")
+    @Column(name = "address", nullable = false, length = 255)
+    private String address;
+
+    @Column(name = "is_headquarter", nullable = false)
+    private boolean isHeadquarter;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "country_id", nullable = false)
     private Country country;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "headquarter_id")
+    private SwiftCode headquarterEntity;
 }
