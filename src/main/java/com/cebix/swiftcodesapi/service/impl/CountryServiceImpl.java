@@ -1,6 +1,9 @@
 package com.cebix.swiftcodesapi.service.impl;
 
+import com.cebix.swiftcodesapi.dto.CountryDTO;
+import com.cebix.swiftcodesapi.dto.CountryCreateDTO;
 import com.cebix.swiftcodesapi.entity.Country;
+import com.cebix.swiftcodesapi.mapper.CountryMapper;
 import com.cebix.swiftcodesapi.repository.CountryRepository;
 import com.cebix.swiftcodesapi.service.CountryService;
 import jakarta.persistence.EntityNotFoundException;
@@ -8,52 +11,60 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class CountryServiceImpl implements CountryService {
+
     private final CountryRepository countryRepository;
+    private final CountryMapper countryMapper;
 
     @Override
-    public List<Country> getAllCountries() {
-        return countryRepository.findAll();
+    public List<CountryDTO> getAllCountries() {
+        return countryRepository.findAll().stream()
+                .map(countryMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public Country getCountryById(Long id) {
-        return countryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Country not found with id: " + id));
+    public CountryDTO getCountryByIsoCode(String isoCode) {
+        Country country = countryRepository.findByIsoCode(isoCode)
+                .orElseThrow(() -> new EntityNotFoundException("Country not found with ISO2: " + isoCode));
+
+        return countryMapper.toDTO(country);
     }
 
     @Override
-    public Country createCountry(Country country) {
-        if (countryRepository.existsByIsoCode(country.getIsoCode())) {
-            throw new IllegalArgumentException("Country with ISO code already exists: " + country.getIsoCode());
+    public CountryDTO createCountry(CountryCreateDTO dto) {
+        if (countryRepository.existsByIsoCode(dto.getIsoCode())) {
+            throw new IllegalArgumentException("Country with ISO code already exists: " + dto.getIsoCode());
         }
-        return countryRepository.save(country);
+
+        Country country = countryMapper.toEntity(dto);
+        Country savedCountry = countryRepository.save(country);
+
+        return countryMapper.toDTO(savedCountry);
     }
 
     @Override
-    public Country updateCountry(Long id, Country updatedCountry) {
-        Country existing = countryRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Country not found with id: " + id));
+    public CountryDTO updateCountry(String isoCode, CountryCreateDTO dto) {
+        Country existingCountry = countryRepository.findByIsoCode(isoCode)
+                .orElseThrow(() -> new EntityNotFoundException("Country not found with ISO2: " + isoCode));
 
-        existing.setName(updatedCountry.getName());
-        existing.setIsoCode(updatedCountry.getIsoCode());
+        existingCountry.setName(dto.getName());
+        existingCountry.setIsoCode(dto.getIsoCode());
 
-        return countryRepository.save(existing);
+        Country updatedCountry = countryRepository.save(existingCountry);
+
+        return countryMapper.toDTO(updatedCountry);
     }
 
     @Override
-    public void deleteCountry(Long id) {
-        if (!countryRepository.existsById(id)) {
-            throw new EntityNotFoundException("Country not found with id: " + id);
-        }
-        countryRepository.deleteById(id);
-    }
+    public void deleteCountry(String isoCode) {
+        Country country = countryRepository.findByIsoCode(isoCode)
+                .orElseThrow(() -> new EntityNotFoundException("Country not found with ISO2: " + isoCode));
 
-    @Override
-    public boolean existsByIsoCode(String isoCode) {
-        return countryRepository.existsByIsoCode(isoCode);
+        countryRepository.delete(country);
     }
 }

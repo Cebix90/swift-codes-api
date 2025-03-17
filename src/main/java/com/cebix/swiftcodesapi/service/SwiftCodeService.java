@@ -1,21 +1,17 @@
 package com.cebix.swiftcodesapi.service;
 
-import com.cebix.swiftcodesapi.entity.SwiftCode;
+import com.cebix.swiftcodesapi.dto.SwiftCodeDTO;
+import com.cebix.swiftcodesapi.dto.SwiftCodeCreateDTO;
 
 import java.util.List;
 
 public interface SwiftCodeService {
-    List<SwiftCode> getAllSwiftCodes();
 
-    List<SwiftCode> getSwiftCodesByCountryId(Long countryId);
+    SwiftCodeDTO getSwiftCode(String swiftCode);
 
-    SwiftCode getSwiftCodeById(Long id);
+    List<SwiftCodeDTO> getSwiftCodesByCountryISO2(String countryISO2);
 
-    SwiftCode createSwiftCode(SwiftCode swiftCode);
+    void createSwiftCode(SwiftCodeCreateDTO dto);
 
-    SwiftCode updateSwiftCode(Long id, SwiftCode swiftCode);
-
-    void deleteSwiftCode(Long id);
-
-    boolean existsBySwiftCode(String swiftCode);
+    void deleteSwiftCode(String swiftCode);
 }

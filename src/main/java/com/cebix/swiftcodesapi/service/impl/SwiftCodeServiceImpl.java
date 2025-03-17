@@ -1,7 +1,10 @@
 package com.cebix.swiftcodesapi.service.impl;
 
+import com.cebix.swiftcodesapi.dto.SwiftCodeDTO;
+import com.cebix.swiftcodesapi.dto.SwiftCodeCreateDTO;
 import com.cebix.swiftcodesapi.entity.Country;
 import com.cebix.swiftcodesapi.entity.SwiftCode;
+import com.cebix.swiftcodesapi.mapper.SwiftCodeMapper;
 import com.cebix.swiftcodesapi.repository.CountryRepository;
 import com.cebix.swiftcodesapi.repository.SwiftCodeRepository;
 import com.cebix.swiftcodesapi.service.SwiftCodeService;
@@ -10,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,68 +21,56 @@ public class SwiftCodeServiceImpl implements SwiftCodeService {
 
     private final SwiftCodeRepository swiftCodeRepository;
     private final CountryRepository countryRepository;
+    private final SwiftCodeMapper swiftCodeMapper;
 
     @Override
-    public List<SwiftCode> getAllSwiftCodes() {
-        return swiftCodeRepository.findAll();
-    }
+    public SwiftCodeDTO getSwiftCode(String swiftCode) {
+        SwiftCode code = swiftCodeRepository.findBySwiftCode(swiftCode)
+                .orElseThrow(() -> new EntityNotFoundException("SwiftCode not found: " + swiftCode));
 
-    @Override
-    public List<SwiftCode> getSwiftCodesByCountryId(Long countryId) {
-        if (!countryRepository.existsById(countryId)) {
-            throw new EntityNotFoundException("Country not found with id: " + countryId);
-        }
-        return swiftCodeRepository.findAllByCountry_Id(countryId);
-    }
+        SwiftCodeDTO dto = swiftCodeMapper.toDTO(code);
 
-    @Override
-    public SwiftCode getSwiftCodeById(Long id) {
-        return swiftCodeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("SwiftCode not found with id: " + id));
-    }
+        if (code.isHeadquarter()) {
+            List<SwiftCodeDTO> branches = swiftCodeRepository.findAllByHeadquarterEntity(code).stream()
+                    .map(swiftCodeMapper::toDTO)
+                    .collect(Collectors.toList());
 
-    @Override
-    public SwiftCode createSwiftCode(SwiftCode swiftCode) {
-        if (swiftCodeRepository.existsBySwiftCode(swiftCode.getSwiftCode())) {
-            throw new IllegalArgumentException("SwiftCode already exists: " + swiftCode.getSwiftCode());
+            dto.setBranches(branches);
         }
 
-        Long countryId = swiftCode.getCountry().getId();
-        Country country = countryRepository.findById(countryId)
-                .orElseThrow(() -> new EntityNotFoundException("Country not found with id: " + countryId));
-
-        swiftCode.setCountry(country);
-        return swiftCodeRepository.save(swiftCode);
+        return dto;
     }
 
     @Override
-    public SwiftCode updateSwiftCode(Long id, SwiftCode updatedSwiftCode) {
-        SwiftCode existing = swiftCodeRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("SwiftCode not found with id: " + id));
+    public List<SwiftCodeDTO> getSwiftCodesByCountryISO2(String countryISO2) {
+        Country country = countryRepository.findByIsoCode(countryISO2)
+                .orElseThrow(() -> new EntityNotFoundException("Country not found with ISO2: " + countryISO2));
 
-        existing.setSwiftCode(updatedSwiftCode.getSwiftCode());
-        existing.setBankName(updatedSwiftCode.getBankName());
-        existing.setBranchName(updatedSwiftCode.getBranchName());
-
-        Long newCountryId = updatedSwiftCode.getCountry().getId();
-        Country newCountry = countryRepository.findById(newCountryId)
-                .orElseThrow(() -> new EntityNotFoundException("Country not found with id: " + newCountryId));
-
-        existing.setCountry(newCountry);
-
-        return swiftCodeRepository.save(existing);
+        return swiftCodeRepository.findAllByCountry_Id(country.getId()).stream()
+                .map(swiftCodeMapper::toDTO)
+                .collect(Collectors.toList());
     }
 
     @Override
-    public void deleteSwiftCode(Long id) {
-        if (!swiftCodeRepository.existsById(id)) {
-            throw new EntityNotFoundException("SwiftCode not found with id: " + id);
+    public void createSwiftCode(SwiftCodeCreateDTO dto) {
+        if (swiftCodeRepository.existsBySwiftCode(dto.getSwiftCode())) {
+            throw new IllegalArgumentException("SwiftCode already exists: " + dto.getSwiftCode());
         }
-        swiftCodeRepository.deleteById(id);
+
+        Country country = countryRepository.findByIsoCode(dto.getCountryISO2())
+                .orElseThrow(() -> new EntityNotFoundException("Country not found with ISO2: " + dto.getCountryISO2()));
+
+        SwiftCode entity = swiftCodeMapper.toEntity(dto);
+        entity.setCountry(country);
+
+        swiftCodeRepository.save(entity);
     }
 
     @Override
-    public boolean existsBySwiftCode(String swiftCode) {
-        return swiftCodeRepository.existsBySwiftCode(swiftCode);
+    public void deleteSwiftCode(String swiftCode) {
+        SwiftCode entity = swiftCodeRepository.findBySwiftCode(swiftCode)
+                .orElseThrow(() -> new EntityNotFoundException("SwiftCode not found: " + swiftCode));
+
+        swiftCodeRepository.delete(entity);
     }
 }

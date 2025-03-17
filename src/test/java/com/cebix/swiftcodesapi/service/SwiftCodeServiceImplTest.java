@@ -1,7 +1,10 @@
 package com.cebix.swiftcodesapi.service;
 
+import com.cebix.swiftcodesapi.dto.SwiftCodeCreateDTO;
+import com.cebix.swiftcodesapi.dto.SwiftCodeDTO;
 import com.cebix.swiftcodesapi.entity.Country;
 import com.cebix.swiftcodesapi.entity.SwiftCode;
+import com.cebix.swiftcodesapi.mapper.SwiftCodeMapper;
 import com.cebix.swiftcodesapi.repository.CountryRepository;
 import com.cebix.swiftcodesapi.repository.SwiftCodeRepository;
 import com.cebix.swiftcodesapi.service.impl.SwiftCodeServiceImpl;
@@ -22,13 +25,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 class SwiftCodeServiceImplTest {
+
     private static final Long COUNTRY_ID = 1L;
     private static final String COUNTRY_NAME = "Poland";
     private static final String COUNTRY_ISO = "PL";
 
-    private static final Long SWIFT_ID = 1L;
     private static final String SWIFT_CODE = "CODE1";
     private static final String BANK_NAME = "Bank 1";
+    private static final String ADDRESS = "Main St 1";
+    private static final boolean IS_HEADQUARTER = true;
 
     private AutoCloseable closeable;
 
@@ -38,17 +43,51 @@ class SwiftCodeServiceImplTest {
     @Mock
     private CountryRepository countryRepository;
 
+    @Mock
+    private SwiftCodeMapper swiftCodeMapper;
+
     @InjectMocks
     private SwiftCodeServiceImpl swiftCodeService;
 
     private Country country;
     private SwiftCode swiftCode;
+    private SwiftCodeDTO swiftCodeDTO;
+    private SwiftCodeCreateDTO swiftCodeCreateDTO;
 
     @BeforeEach
     void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
-        country = createCountry();
-        swiftCode = createSwiftCode(SWIFT_ID, SWIFT_CODE, BANK_NAME, country);
+
+        country = Country.builder()
+                .id(COUNTRY_ID)
+                .name(COUNTRY_NAME)
+                .isoCode(COUNTRY_ISO)
+                .build();
+
+        swiftCode = SwiftCode.builder()
+                .id(1L)
+                .swiftCode(SWIFT_CODE)
+                .bankName(BANK_NAME)
+                .address(ADDRESS)
+                .isHeadquarter(IS_HEADQUARTER)
+                .country(country)
+                .build();
+
+        swiftCodeDTO = new SwiftCodeDTO();
+        swiftCodeDTO.setSwiftCode(SWIFT_CODE);
+        swiftCodeDTO.setBankName(BANK_NAME);
+        swiftCodeDTO.setAddress(ADDRESS);
+        swiftCodeDTO.setCountryISO2(COUNTRY_ISO);
+        swiftCodeDTO.setCountryName(COUNTRY_NAME);
+        swiftCodeDTO.setHeadquarter(IS_HEADQUARTER);
+
+        swiftCodeCreateDTO = new SwiftCodeCreateDTO();
+        swiftCodeCreateDTO.setSwiftCode(SWIFT_CODE);
+        swiftCodeCreateDTO.setBankName(BANK_NAME);
+        swiftCodeCreateDTO.setAddress(ADDRESS);
+        swiftCodeCreateDTO.setCountryISO2(COUNTRY_ISO);
+        swiftCodeCreateDTO.setCountryName(COUNTRY_NAME);
+        swiftCodeCreateDTO.setHeadquarter(IS_HEADQUARTER);
     }
 
     @AfterEach
@@ -56,91 +95,71 @@ class SwiftCodeServiceImplTest {
         closeable.close();
     }
 
-    private Country createCountry() {
-        return Country.builder()
-                .id(COUNTRY_ID)
-                .name(COUNTRY_NAME)
-                .isoCode(COUNTRY_ISO)
-                .build();
-    }
+    @Test
+    @DisplayName("Should return SwiftCode by code")
+    void shouldReturnSwiftCodeByCode() {
+        when(swiftCodeRepository.findBySwiftCode(SWIFT_CODE)).thenReturn(Optional.of(swiftCode));
+        when(swiftCodeMapper.toDTO(swiftCode)).thenReturn(swiftCodeDTO);
+        when(swiftCodeRepository.findAllByHeadquarterEntity(swiftCode)).thenReturn(List.of());
 
-    private SwiftCode createSwiftCode(Long id, String code, String bankName, Country country) {
-        return SwiftCode.builder()
-                .id(id)
-                .swiftCode(code)
-                .bankName(bankName)
-                .country(country)
-                .build();
+        SwiftCodeDTO result = swiftCodeService.getSwiftCode(SWIFT_CODE);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getSwiftCode()).isEqualTo(SWIFT_CODE);
+
+        verify(swiftCodeRepository).findBySwiftCode(SWIFT_CODE);
+        verify(swiftCodeMapper).toDTO(swiftCode);
     }
 
     @Test
-    @DisplayName("Should return all SwiftCodes")
-    void shouldReturnAllSwiftCodes() {
-        when(swiftCodeRepository.findAll()).thenReturn(List.of(swiftCode));
+    @DisplayName("Should throw exception when SwiftCode not found by code")
+    void shouldThrowWhenSwiftCodeNotFoundByCode() {
+        when(swiftCodeRepository.findBySwiftCode(SWIFT_CODE)).thenReturn(Optional.empty());
 
-        List<SwiftCode> result = swiftCodeService.getAllSwiftCodes();
+        assertThatThrownBy(() -> swiftCodeService.getSwiftCode(SWIFT_CODE))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("SwiftCode not found");
+
+        verify(swiftCodeRepository).findBySwiftCode(SWIFT_CODE);
+    }
+
+    @Test
+    @DisplayName("Should return SwiftCodes by country ISO2")
+    void shouldReturnSwiftCodesByCountryISO2() {
+        when(countryRepository.findByIsoCode(COUNTRY_ISO)).thenReturn(Optional.of(country));
+        when(swiftCodeRepository.findAllByCountry_Id(COUNTRY_ID)).thenReturn(List.of(swiftCode));
+        when(swiftCodeMapper.toDTO(swiftCode)).thenReturn(swiftCodeDTO);
+
+        List<SwiftCodeDTO> result = swiftCodeService.getSwiftCodesByCountryISO2(COUNTRY_ISO);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getSwiftCode()).isEqualTo(SWIFT_CODE);
-        verify(swiftCodeRepository).findAll();
-    }
 
-    @Test
-    @DisplayName("Should return SwiftCodes by country ID")
-    void shouldReturnSwiftCodesByCountryId() {
-        when(countryRepository.existsById(COUNTRY_ID)).thenReturn(true);
-        when(swiftCodeRepository.findAllByCountry_Id(COUNTRY_ID)).thenReturn(List.of(swiftCode));
-
-        List<SwiftCode> result = swiftCodeService.getSwiftCodesByCountryId(COUNTRY_ID);
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getCountry().getId()).isEqualTo(COUNTRY_ID);
+        verify(countryRepository).findByIsoCode(COUNTRY_ISO);
         verify(swiftCodeRepository).findAllByCountry_Id(COUNTRY_ID);
     }
 
     @Test
-    @DisplayName("Should throw exception when country not found for SwiftCodesByCountryId")
-    void shouldThrowWhenCountryNotFoundForSwiftCodesByCountryId() {
-        when(countryRepository.existsById(COUNTRY_ID)).thenReturn(false);
+    @DisplayName("Should throw exception when country not found by ISO2")
+    void shouldThrowWhenCountryNotFoundByISO2() {
+        when(countryRepository.findByIsoCode(COUNTRY_ISO)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> swiftCodeService.getSwiftCodesByCountryId(COUNTRY_ID))
+        assertThatThrownBy(() -> swiftCodeService.getSwiftCodesByCountryISO2(COUNTRY_ISO))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("Country not found with id");
-    }
+                .hasMessageContaining("Country not found with ISO2");
 
-    @Test
-    @DisplayName("Should return SwiftCode by ID")
-    void shouldReturnSwiftCodeById() {
-        when(swiftCodeRepository.findById(SWIFT_ID)).thenReturn(Optional.of(swiftCode));
-
-        SwiftCode result = swiftCodeService.getSwiftCodeById(SWIFT_ID);
-
-        assertThat(result).isNotNull();
-        assertThat(result.getSwiftCode()).isEqualTo(SWIFT_CODE);
-        verify(swiftCodeRepository).findById(SWIFT_ID);
-    }
-
-    @Test
-    @DisplayName("Should throw exception when SwiftCode not found by ID")
-    void shouldThrowWhenSwiftCodeNotFoundById() {
-        when(swiftCodeRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> swiftCodeService.getSwiftCodeById(999L))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("SwiftCode not found with id");
+        verify(countryRepository).findByIsoCode(COUNTRY_ISO);
     }
 
     @Test
     @DisplayName("Should create SwiftCode when code is unique and country exists")
     void shouldCreateSwiftCode() {
         when(swiftCodeRepository.existsBySwiftCode(SWIFT_CODE)).thenReturn(false);
-        when(countryRepository.findById(COUNTRY_ID)).thenReturn(Optional.of(country));
-        when(swiftCodeRepository.save(swiftCode)).thenReturn(swiftCode);
+        when(countryRepository.findByIsoCode(COUNTRY_ISO)).thenReturn(Optional.of(country));
+        when(swiftCodeMapper.toEntity(swiftCodeCreateDTO)).thenReturn(swiftCode);
 
-        SwiftCode result = swiftCodeService.createSwiftCode(swiftCode);
+        swiftCodeService.createSwiftCode(swiftCodeCreateDTO);
 
-        assertThat(result).isNotNull();
-        assertThat(result.getSwiftCode()).isEqualTo(SWIFT_CODE);
         verify(swiftCodeRepository).save(swiftCode);
     }
 
@@ -149,80 +168,46 @@ class SwiftCodeServiceImplTest {
     void shouldThrowWhenCreatingSwiftCodeWithExistingCode() {
         when(swiftCodeRepository.existsBySwiftCode(SWIFT_CODE)).thenReturn(true);
 
-        assertThatThrownBy(() -> swiftCodeService.createSwiftCode(swiftCode))
+        assertThatThrownBy(() -> swiftCodeService.createSwiftCode(swiftCodeCreateDTO))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("SwiftCode already exists");
+
+        verify(swiftCodeRepository).existsBySwiftCode(SWIFT_CODE);
     }
 
     @Test
     @DisplayName("Should throw exception when creating SwiftCode with non-existing country")
     void shouldThrowWhenCreatingSwiftCodeWithNonExistingCountry() {
         when(swiftCodeRepository.existsBySwiftCode(SWIFT_CODE)).thenReturn(false);
-        when(countryRepository.findById(COUNTRY_ID)).thenReturn(Optional.empty());
+        when(countryRepository.findByIsoCode(COUNTRY_ISO)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> swiftCodeService.createSwiftCode(swiftCode))
+        assertThatThrownBy(() -> swiftCodeService.createSwiftCode(swiftCodeCreateDTO))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("Country not found with id");
-    }
+                .hasMessageContaining("Country not found with ISO2");
 
-    @Test
-    @DisplayName("Should update existing SwiftCode")
-    void shouldUpdateSwiftCode() {
-        SwiftCode updatedSwift = createSwiftCode(null, "CODE2", "Bank 2", country);
-        updatedSwift.setBranchName("New Branch");
-
-        when(swiftCodeRepository.findById(SWIFT_ID)).thenReturn(Optional.of(swiftCode));
-        when(countryRepository.findById(COUNTRY_ID)).thenReturn(Optional.of(country));
-        when(swiftCodeRepository.save(any(SwiftCode.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        SwiftCode result = swiftCodeService.updateSwiftCode(SWIFT_ID, updatedSwift);
-
-        assertThat(result.getSwiftCode()).isEqualTo("CODE2");
-        assertThat(result.getBankName()).isEqualTo("Bank 2");
-        assertThat(result.getBranchName()).isEqualTo("New Branch");
-        verify(swiftCodeRepository).save(any(SwiftCode.class));
-    }
-
-    @Test
-    @DisplayName("Should throw exception when updating non-existing SwiftCode")
-    void shouldThrowWhenUpdatingNonExistingSwiftCode() {
-        SwiftCode updatedSwift = createSwiftCode(null, "CODE2", "Bank 2", country);
-
-        when(swiftCodeRepository.findById(999L)).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> swiftCodeService.updateSwiftCode(999L, updatedSwift))
-                .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("SwiftCode not found with id");
+        verify(swiftCodeRepository).existsBySwiftCode(SWIFT_CODE);
+        verify(countryRepository).findByIsoCode(COUNTRY_ISO);
     }
 
     @Test
     @DisplayName("Should delete SwiftCode when exists")
     void shouldDeleteSwiftCode() {
-        when(swiftCodeRepository.existsById(SWIFT_ID)).thenReturn(true);
+        when(swiftCodeRepository.findBySwiftCode(SWIFT_CODE)).thenReturn(Optional.of(swiftCode));
 
-        swiftCodeService.deleteSwiftCode(SWIFT_ID);
+        swiftCodeService.deleteSwiftCode(SWIFT_CODE);
 
-        verify(swiftCodeRepository).deleteById(SWIFT_ID);
+        verify(swiftCodeRepository).delete(swiftCode);
     }
 
     @Test
     @DisplayName("Should throw exception when deleting non-existing SwiftCode")
     void shouldThrowWhenDeletingNonExistingSwiftCode() {
-        when(swiftCodeRepository.existsById(999L)).thenReturn(false);
+        when(swiftCodeRepository.findBySwiftCode(SWIFT_CODE)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> swiftCodeService.deleteSwiftCode(999L))
+        assertThatThrownBy(() -> swiftCodeService.deleteSwiftCode(SWIFT_CODE))
                 .isInstanceOf(EntityNotFoundException.class)
-                .hasMessageContaining("SwiftCode not found with id");
-    }
+                .hasMessageContaining("SwiftCode not found");
 
-    @Test
-    @DisplayName("Should check if SwiftCode exists by code")
-    void shouldCheckIfSwiftCodeExistsByCode() {
-        when(swiftCodeRepository.existsBySwiftCode(SWIFT_CODE)).thenReturn(true);
-
-        boolean exists = swiftCodeService.existsBySwiftCode(SWIFT_CODE);
-
-        assertThat(exists).isTrue();
-        verify(swiftCodeRepository).existsBySwiftCode(SWIFT_CODE);
+        verify(swiftCodeRepository).findBySwiftCode(SWIFT_CODE);
     }
 }
