@@ -11,6 +11,7 @@ public interface SwiftCodeMapper {
 
     @Mapping(source = "country.isoCode", target = "countryISO2")
     @Mapping(source = "country.name", target = "countryName")
+    @Mapping(source = "headquarter", target = "isHeadquarter")
     SwiftCodeDTO toDTO(SwiftCode entity);
 
     SwiftCode toEntity(SwiftCodeCreateDTO dto);

@@ -25,21 +25,24 @@ public class SwiftCodeServiceImpl implements SwiftCodeService {
 
     @Override
     public SwiftCodeDTO getSwiftCode(String swiftCode) {
-        SwiftCode code = swiftCodeRepository.findBySwiftCode(swiftCode)
+        SwiftCode entity = swiftCodeRepository.findBySwiftCode(swiftCode)
                 .orElseThrow(() -> new EntityNotFoundException("SwiftCode not found: " + swiftCode));
 
-        SwiftCodeDTO dto = swiftCodeMapper.toDTO(code);
+        SwiftCodeDTO dto = swiftCodeMapper.toDTO(entity);
 
-        if (code.isHeadquarter()) {
-            List<SwiftCodeDTO> branches = swiftCodeRepository.findAllByHeadquarterEntity(code).stream()
+        if (entity.isHeadquarter()) {
+            List<SwiftCodeDTO> branchDTOs = swiftCodeRepository.findAllByHeadquarterEntity(entity)
+                    .stream()
                     .map(swiftCodeMapper::toDTO)
-                    .collect(Collectors.toList());
-
-            dto.setBranches(branches);
+                    .toList();
+            dto.setBranches(branchDTOs);
+        } else {
+            dto.setBranches(null);
         }
 
         return dto;
     }
+
 
     @Override
     public List<SwiftCodeDTO> getSwiftCodesByCountryISO2(String countryISO2) {
@@ -57,11 +60,22 @@ public class SwiftCodeServiceImpl implements SwiftCodeService {
             throw new IllegalArgumentException("SwiftCode already exists: " + dto.getSwiftCode());
         }
 
-        Country country = countryRepository.findByIsoCode(dto.getCountryISO2())
+        Country country = countryRepository.findByIsoCode(dto.getCountryISO2().toUpperCase())
                 .orElseThrow(() -> new EntityNotFoundException("Country not found with ISO2: " + dto.getCountryISO2()));
 
         SwiftCode entity = swiftCodeMapper.toEntity(dto);
+
         entity.setCountry(country);
+
+        entity.setHeadquarter(Boolean.TRUE.equals(dto.getIsHeadquarter()));
+
+        if (Boolean.FALSE.equals(dto.getIsHeadquarter())) {
+            String hqSwiftCode = dto.getSwiftCode().substring(0, 8) + "XXX";
+            SwiftCode headquarter = swiftCodeRepository.findBySwiftCode(hqSwiftCode)
+                    .orElseThrow(() -> new EntityNotFoundException("Headquarter not found for branch: " + dto.getSwiftCode()));
+
+            entity.setHeadquarterEntity(headquarter);
+        }
 
         swiftCodeRepository.save(entity);
     }
