@@ -31,7 +31,6 @@ public class SwiftCode {
     @Column(name = "branch_name", length = 150)
     private String branchName;
 
-    @NotBlank(message = "Address cannot be blank")
     @Size(max = 255, message = "Address can't be longer than 255 characters")
     @Column(name = "address", nullable = false, length = 255)
     private String address;

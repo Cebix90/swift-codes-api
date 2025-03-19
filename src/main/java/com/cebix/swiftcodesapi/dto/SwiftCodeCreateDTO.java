@@ -13,8 +13,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SwiftCodeCreateDTO {
-
-    @NotBlank(message = "Address cannot be blank")
     @Size(max = 255)
     private String address;
 
