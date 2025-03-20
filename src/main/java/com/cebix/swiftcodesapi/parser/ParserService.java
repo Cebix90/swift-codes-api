@@ -34,7 +34,7 @@ public class ParserService {
 
     public void importData() {
         try {
-            ClassPathResource resource = new ClassPathResource("data/Interns_2025_SWIFT_CODES.csv");
+            ClassPathResource resource = getClassPathResource("data/Interns_2025_SWIFT_CODES.csv");
             importDataFromStream(new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8));
         } catch (IOException e) {
             log.error("IO error loading CSV file", e);
@@ -42,7 +42,7 @@ public class ParserService {
     }
 
     public void importDataFromStream(InputStreamReader reader) {
-        try (CSVReader csvReader = new CSVReader(reader)) {
+        try (CSVReader csvReader = createCsvReader(reader)) {
             String[] fields;
             boolean isFirstLine = true;
 
@@ -128,5 +128,13 @@ public class ParserService {
         } catch (IOException e) {
             log.error("IO error during import", e);
         }
+    }
+
+    protected CSVReader createCsvReader(InputStreamReader reader) {
+        return new CSVReader(reader);
+    }
+
+    protected ClassPathResource getClassPathResource(String path) {
+        return new ClassPathResource(path);
     }
 }
