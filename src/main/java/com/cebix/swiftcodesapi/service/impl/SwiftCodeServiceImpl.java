@@ -1,7 +1,9 @@
 package com.cebix.swiftcodesapi.service.impl;
 
-import com.cebix.swiftcodesapi.dto.SwiftCodeDTO;
+import com.cebix.swiftcodesapi.dto.CountrySwiftCodesDTO;
 import com.cebix.swiftcodesapi.dto.SwiftCodeCreateDTO;
+import com.cebix.swiftcodesapi.dto.SwiftCodeDTO;
+import com.cebix.swiftcodesapi.dto.SwiftCodeSimpleDTO;
 import com.cebix.swiftcodesapi.entity.Country;
 import com.cebix.swiftcodesapi.entity.SwiftCode;
 import com.cebix.swiftcodesapi.mapper.SwiftCodeMapper;
@@ -13,7 +15,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -45,13 +46,20 @@ public class SwiftCodeServiceImpl implements SwiftCodeService {
 
 
     @Override
-    public List<SwiftCodeDTO> getSwiftCodesByCountryISO2(String countryISO2) {
+    public CountrySwiftCodesDTO getSwiftCodesByCountryISO2(String countryISO2) {
         Country country = countryRepository.findByIsoCode(countryISO2)
                 .orElseThrow(() -> new EntityNotFoundException("Country not found with ISO2: " + countryISO2));
 
-        return swiftCodeRepository.findAllByCountry_Id(country.getId()).stream()
-                .map(swiftCodeMapper::toDTO)
-                .collect(Collectors.toList());
+        List<SwiftCodeSimpleDTO> swiftCodes = swiftCodeRepository.findAllByCountry_Id(country.getId())
+                .stream()
+                .map(swiftCodeMapper::toSimpleDTO)
+                .toList();
+
+        return CountrySwiftCodesDTO.builder()
+                .countryISO2(country.getIsoCode())
+                .countryName(country.getName())
+                .swiftCodes(swiftCodes)
+                .build();
     }
 
     @Override

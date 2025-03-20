@@ -1,5 +1,6 @@
 package com.cebix.swiftcodesapi.controller;
 
+import com.cebix.swiftcodesapi.dto.CountrySwiftCodesDTO;
 import com.cebix.swiftcodesapi.dto.MessageResponseDTO;
 import com.cebix.swiftcodesapi.dto.SwiftCodeCreateDTO;
 import com.cebix.swiftcodesapi.dto.SwiftCodeDTO;
@@ -8,8 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/v1/swift-codes")
@@ -24,20 +23,20 @@ public class SwiftCodeController {
     }
 
     @GetMapping("/country/{countryISO2}")
-    public ResponseEntity<List<SwiftCodeDTO>> getSwiftCodesByCountry(@PathVariable String countryISO2) {
-        List<SwiftCodeDTO> result = swiftCodeService.getSwiftCodesByCountryISO2(countryISO2.toUpperCase());
+    public ResponseEntity<CountrySwiftCodesDTO> getSwiftCodesByCountry(@PathVariable String countryISO2) {
+        CountrySwiftCodesDTO result = swiftCodeService.getSwiftCodesByCountryISO2(countryISO2.toUpperCase());
         return ResponseEntity.ok(result);
     }
 
     @PostMapping
     public ResponseEntity<MessageResponseDTO> createSwiftCode(@Valid @RequestBody SwiftCodeCreateDTO dto) {
         swiftCodeService.createSwiftCode(dto);
-        return ResponseEntity.ok(new MessageResponseDTO("SwiftCode successfully created"));
+        return ResponseEntity.ok(new MessageResponseDTO("SwiftCode " + dto.getSwiftCode() + " successfully created"));
     }
 
     @DeleteMapping("/{swiftCode}")
     public ResponseEntity<MessageResponseDTO> deleteSwiftCode(@PathVariable String swiftCode) {
         swiftCodeService.deleteSwiftCode(swiftCode);
-        return ResponseEntity.ok(new MessageResponseDTO("SwiftCode successfully deleted"));
+        return ResponseEntity.ok(new MessageResponseDTO("SwiftCode " + swiftCode + " successfully deleted"));
     }
 }
