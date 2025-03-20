@@ -22,6 +22,5 @@ public class SwiftCodeDTO {
 
     private String swiftCode;
 
-    @Builder.Default
     private List<SwiftCodeDTO> branches = new ArrayList<>();
 }
