@@ -13,8 +13,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  app:
+  app-local:
     build: .
+    container_name: swift-codes-api-local
+    depends_on:
+      - postgres
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+    ports:
+      - "8081:8080"
+
+  app:
+    image: cebix90/swift-codes-api:latest
     container_name: swift-codes-api
     depends_on:
       - postgres
