@@ -22,10 +22,10 @@ services:
       - swift-network
 
   swift-codes-api:
-#    image: cebix90/swift-codes-api:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: cebix90/swift-codes-api:latest
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
     platform: linux/amd64
     depends_on:
       db:
