@@ -1,5 +1,6 @@
 package com.cebix.swiftcodesapi.exception;
 
+import com.cebix.swiftcodesapi.dto.MessageResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -29,10 +30,9 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Object> handleGeneric(Exception ex) {
-        log.error("Unexpected error", ex);
-
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected error occurred");
+    public ResponseEntity<MessageResponseDTO> handleException(Exception ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new MessageResponseDTO("Unexpected error occurred"));
     }
 
     private ResponseEntity<Object> buildResponse(HttpStatus status, String message) {

@@ -48,7 +48,7 @@ jobs:
           sleep 20
           docker-compose ps
           docker logs $(docker ps -qf "name=swift-codes-api") || true
-          curl -v http://localhost:8080/actuator/health || exit 1
+          curl -v http://localhost:8080/v1/swift-codes/country/AW || exit 1
           docker-compose -f docker-compose.yml down
 
       # 6. Log in to Docker Hub
