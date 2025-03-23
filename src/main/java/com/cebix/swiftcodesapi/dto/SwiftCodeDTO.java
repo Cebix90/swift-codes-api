@@ -22,5 +22,5 @@ public class SwiftCodeDTO {
 
     private String swiftCode;
 
-    private List<SwiftCodeDTO> branches = new ArrayList<>();
+    private List<SwiftCodeSimpleDTO> branches = new ArrayList<>();
 }

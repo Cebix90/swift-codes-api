@@ -32,9 +32,9 @@ public class SwiftCodeServiceImpl implements SwiftCodeService {
         SwiftCodeDTO dto = swiftCodeMapper.toDTO(entity);
 
         if (entity.isHeadquarter()) {
-            List<SwiftCodeDTO> branchDTOs = swiftCodeRepository.findAllByHeadquarterEntity(entity)
+            List<SwiftCodeSimpleDTO> branchDTOs = swiftCodeRepository.findAllByHeadquarterEntity(entity)
                     .stream()
-                    .map(swiftCodeMapper::toDTO)
+                    .map(swiftCodeMapper::toSimpleDTO)
                     .toList();
             dto.setBranches(branchDTOs);
         } else {

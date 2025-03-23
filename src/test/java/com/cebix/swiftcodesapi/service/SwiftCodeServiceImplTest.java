@@ -107,13 +107,13 @@ class SwiftCodeServiceImplTest {
             when(swiftCodeMapper.toDTO(hqSwiftCode)).thenReturn(hqSwiftCodeDTO);
             when(swiftCodeRepository.findAllByHeadquarterEntity(hqSwiftCode)).thenReturn(List.of(branchSwiftCode));
 
-            SwiftCodeDTO branchDTO = SwiftCodeDTO.builder()
+            SwiftCodeSimpleDTO branchSimpleDTO = SwiftCodeSimpleDTO.builder()
                     .swiftCode(SWIFT_CODE_BRANCH)
                     .bankName("Branch Bank")
                     .isHeadquarter(false)
                     .build();
 
-            when(swiftCodeMapper.toDTO(branchSwiftCode)).thenReturn(branchDTO);
+            when(swiftCodeMapper.toSimpleDTO(branchSwiftCode)).thenReturn(branchSimpleDTO);
 
             SwiftCodeDTO result = swiftCodeService.getSwiftCode(SWIFT_CODE_HQ);
 
