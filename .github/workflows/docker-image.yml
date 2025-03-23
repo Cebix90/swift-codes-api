@@ -44,9 +44,11 @@ jobs:
       - name: Run docker-compose for integration test
         run: |
           docker-compose -f docker-compose.yml up -d --build
-          echo "Waiting for backend to be healthy..."
+          echo "Waiting for backend to start..."
           sleep 20
-          curl --fail http://localhost:8080/api/swift-codes || exit 1
+          docker-compose ps
+          docker logs $(docker ps -qf "name=swift-codes-api") || true
+          curl -v http://localhost:8080/actuator/health || exit 1
           docker-compose -f docker-compose.yml down
 
       # 6. Log in to Docker Hub
