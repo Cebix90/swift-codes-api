@@ -1,37 +1,48 @@
 version: '3.8'
 
 services:
-  postgres:
+  db:
     image: postgres:15
     container_name: postgres
+    platform: linux/amd64
     environment:
-      POSTGRES_DB: swiftcodes
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
+      POSTGRES_DB: swiftcodes
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - swift-network
 
-  app-local:
-    build: .
-    container_name: swift-codes-api-local
-    depends_on:
-      - postgres
-    environment:
-      - SPRING_PROFILES_ACTIVE=docker
-    ports:
-      - "8081:8080"
-
-  app:
+  swift-codes-api:
     image: cebix90/swift-codes-api:latest
-    container_name: swift-codes-api
+    build:
+      context: .
+      dockerfile: Dockerfile
+    platform: linux/amd64
     depends_on:
-      - postgres
+      db:
+        condition: service_healthy
     environment:
-      - SPRING_PROFILES_ACTIVE=docker
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/swiftcodes
+      SPRING_DATASOURCE_USERNAME: user
+      SPRING_DATASOURCE_PASSWORD: password
     ports:
       - "8080:8080"
+    networks:
+      - swift-network
 
 volumes:
   postgres_data:
+
+networks:
+  swift-network:
+    driver: bridge
