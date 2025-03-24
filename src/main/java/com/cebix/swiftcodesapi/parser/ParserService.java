@@ -15,8 +15,6 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashSet;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -46,8 +44,6 @@ public class ParserService {
             String[] fields;
             boolean isFirstLine = true;
 
-            Set<String> importedSwiftCodes = new HashSet<>();
-
             while ((fields = csvReader.readNext()) != null) {
                 if (isFirstLine) {
                     isFirstLine = false;
@@ -69,7 +65,6 @@ public class ParserService {
                 }
 
                 boolean isHeadquarter = swiftCodeValue.endsWith("XXX");
-                importedSwiftCodes.add(swiftCodeValue);
 
                 Country country = countryRepository.findByIsoCode(countryISO2)
                         .orElseGet(() -> {
@@ -80,45 +75,14 @@ public class ParserService {
                             return countryRepository.save(newCountry);
                         });
 
-                SwiftCode swiftCode = swiftCodeRepository.findBySwiftCode(swiftCodeValue)
-                        .orElse(null);
-
-                if (swiftCode != null) {
-                    swiftCode.setBankName(bankName);
-                    swiftCode.setBranchName(townName);
-                    swiftCode.setAddress(address);
-                    swiftCode.setHeadquarter(isHeadquarter);
-                    swiftCode.setCountry(country);
-
-                    if (!isHeadquarter) {
-                        String hqCode = swiftCodeValue.substring(0, 8) + "XXX";
-                        SwiftCode hq = swiftCodeRepository.findBySwiftCode(hqCode).orElse(null);
-                        swiftCode.setHeadquarterEntity(hq);
-                    } else {
-                        swiftCode.setHeadquarterEntity(null);
-                    }
-
-                    swiftCodeRepository.save(swiftCode);
-                    log.info("Updated SwiftCode: {}", swiftCodeValue);
-                } else {
-                    SwiftCode newSwiftCode = SwiftCode.builder()
-                            .swiftCode(swiftCodeValue)
-                            .bankName(bankName)
-                            .branchName(townName)
-                            .address(address)
-                            .isHeadquarter(isHeadquarter)
-                            .country(country)
-                            .build();
-
-                    if (!isHeadquarter) {
-                        String hqCode = swiftCodeValue.substring(0, 8) + "XXX";
-                        SwiftCode hq = swiftCodeRepository.findBySwiftCode(hqCode).orElse(null);
-                        newSwiftCode.setHeadquarterEntity(hq);
-                    }
-
-                    swiftCodeRepository.save(newSwiftCode);
-                    log.info("Inserted new SwiftCode: {}", swiftCodeValue);
-                }
+                saveOrUpdateSwiftCode(
+                        swiftCodeValue,
+                        bankName,
+                        address,
+                        townName,
+                        isHeadquarter,
+                        country
+                );
             }
 
             log.info("CSV import/update completed!");
@@ -136,5 +100,34 @@ public class ParserService {
 
     protected ClassPathResource getClassPathResource(String path) {
         return new ClassPathResource(path);
+    }
+
+    private void saveOrUpdateSwiftCode(String swiftCodeValue, String bankName, String address, String branchName, boolean isHeadquarter, Country country) {
+        SwiftCode swiftCode = swiftCodeRepository.findBySwiftCode(swiftCodeValue).orElse(null);
+
+        if (swiftCode == null) {
+            swiftCode = SwiftCode.builder()
+                    .swiftCode(swiftCodeValue)
+                    .build();
+            log.info("Inserted new SwiftCode: {}", swiftCodeValue);
+        } else {
+            log.info("Updated SwiftCode: {}", swiftCodeValue);
+        }
+
+        swiftCode.setBankName(bankName);
+        swiftCode.setAddress(address);
+        swiftCode.setBranchName(branchName);
+        swiftCode.setHeadquarter(isHeadquarter);
+        swiftCode.setCountry(country);
+
+        if (!isHeadquarter) {
+            String hqCode = swiftCodeValue.substring(0, 8) + "XXX";
+            SwiftCode hq = swiftCodeRepository.findBySwiftCode(hqCode).orElse(null);
+            swiftCode.setHeadquarterEntity(hq);
+        } else {
+            swiftCode.setHeadquarterEntity(null);
+        }
+
+        swiftCodeRepository.save(swiftCode);
     }
 }
