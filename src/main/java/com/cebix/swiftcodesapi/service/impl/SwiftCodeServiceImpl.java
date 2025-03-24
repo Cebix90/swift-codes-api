@@ -44,7 +44,6 @@ public class SwiftCodeServiceImpl implements SwiftCodeService {
         return dto;
     }
 
-
     @Override
     public CountrySwiftCodesDTO getSwiftCodesByCountryISO2(String countryISO2) {
         Country country = countryRepository.findByIsoCode(countryISO2)
