@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/v1/swift-codes")
 @RequiredArgsConstructor
+@CrossOrigin
 public class SwiftCodeController {
     private final SwiftCodeService swiftCodeService;
 
